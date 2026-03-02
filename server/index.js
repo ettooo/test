@@ -71,7 +71,7 @@ app.post('/api/analyze', async (req, res) => {
 
         const transcriptText = transcriptData.map(t => t.text).join(' ') || "Fallback: This video has no captions.";
 
-        const moments = await findKeyMoments(transcriptText.slice(0, 10000)); // Limit for prompt size
+        const moments = await findKeyMoments(transcriptText.slice(0, 30000)); // Increased limit for better analysis
         res.json({ moments });
     } catch (error) {
         console.error('SERVER ERROR during analyze:', error);
@@ -79,8 +79,14 @@ app.post('/api/analyze', async (req, res) => {
     }
 });
 
-// Serve static clips
-app.use('/clips', express.static(path.join(__dirname, 'public/clips')));
+// Serve static clips with headers to force download
+app.use('/clips', express.static(path.join(__dirname, 'public/clips'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.mp4')) {
+            res.setHeader('Content-Disposition', 'attachment');
+        }
+    }
+}));
 
 app.post('/api/clip', async (req, res) => {
     const { url, start, end, title, withSubtitles } = req.body;
