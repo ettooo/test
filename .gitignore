@@ -7,3 +7,10 @@ build/
 .DS_Store
 .next/
 out/
+
+# Video processing temp files
+server/public/clips/*
+!server/public/clips/.gitkeep
+*.srt
+*.mp4
+*temp.mp4

@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViralClippy — AI Video Intelligence</title>
+
+    <!-- FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #080808;
+            --bg-card: #111111;
+            --border: #222222;
+            --accent: #f43f5e;
+            --accent-glow: rgba(244, 63, 94, 0.15);
+            --text: #f5f5f5;
+            --text-muted: #6b7280;
+            --nav-bg: rgba(8, 8, 8, 0.7);
+            --transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* RESET & BASE */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* NOISE OVERLAY */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3BaseFilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/feTurbulence%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* UTILITIES */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--accent) 0%, #e11d48 100%);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(244, 63, 94, 0.3);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* [1] NAVBAR */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 1.5rem 0;
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo i {
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links li {
+            position: relative;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-links a:hover {
+            color: white;
+        }
+
+        /* MEGA DROPDOWN */
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            width: 500px;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            visibility: hidden;
+            opacity: 0;
+            transition: var(--transition);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-links li:hover .dropdown {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dropdown-item {
+            text-decoration: none;
+            padding: 1rem;
+            border-radius: 12px;
+            transition: var(--transition);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .dropdown-item i {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item span {
+            display: block;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .dropdown-item p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .signin-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        /* [2] HERO SECTION */
+        .hero {
+            padding: 12rem 0 8rem;
+            text-align: center;
+            position: relative;
+        }
+
+        /* HERO GLOW */
+        .hero::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80vw;
+            height: 40vh;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid var(--accent);
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(52px, 7vw, 88px);
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -3px;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(16px, 2vw, 20px);
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 3.5rem;
+        }
+
+        /* INPUT BAR */
+        .input-bar {
+            max-width: 560px;
+            margin: 0 auto 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            border-radius: 20px;
+            display: flex;
+            transition: var(--transition);
+        }
+
+        .input-bar:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0 1.5rem;
+            font-size: 1.05rem;
+            outline: none;
+        }
+
+        .input-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .support-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5rem;
+        }
+
+        /* DEMO THUMBS */
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto 4rem;
+        }
+
+        .demo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .demo-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .demo-img {
+            height: 160px;
+            background: linear-gradient(45deg, #111, #222);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-label {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .demo-info {
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* [3] SOCIAL PROOF - MARQUEE */
+        .social-proof {
+            padding: 5rem 0;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .marquee-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .marquee {
+            display: flex;
+            gap: 2rem;
+            width: max-content;
+            animation: scroll 40s linear infinite;
+        }
+
+        .marquee.reverse {
+            animation-direction: reverse;
+        }
+
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .creator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 250px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .creator-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .creator-stats {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .logo-marquee {
+            margin-top: 5rem;
+            display: flex;
+            justify-content: center;
+            gap: 5rem;
+            filter: grayscale(1);
+            opacity: 0.4;
+        }
+
+        .logo-marquee span {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        /* [4] AI MODELS SECTION */
+        .ai-models {
+            padding: 10rem 0;
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .feature-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .tab {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 100px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .check-list {
+            list-style: none;
+            margin-top: 1.5rem;
+        }
+
+        .check-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .check-list i {
+            color: var(--accent);
+        }
+
+        .mockup {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            height: 500px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .mockup::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom right, var(--accent-glow), transparent);
+        }
+
+        /* [5] WORKFLOW AUTOMATION */
+        .workflow {
+            padding: 8rem 0;
+        }
+
+        .workflow-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, #050505 100%);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 5rem;
+            display: grid;
+            grid-template-columns: 40% 60%;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+        }
+
+        .live-badge {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* [6] AI EDITOR */
+        .editor-section {
+            padding: 10rem 0;
+            text-align: center;
+        }
+
+        .editor-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 4rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .e-tab {
+            padding: 1.5rem 0;
+            color: var(--text-muted);
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .e-tab.active {
+            color: white;
+        }
+
+        .e-tab.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* [7] TEAM/BUSINESS CARDS */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            padding: 8rem 0;
+        }
+
+        .f-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            border-radius: 30px;
+            transition: var(--transition);
+        }
+
+        .f-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .f-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(244, 63, 94, 0.1);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin-bottom: 2rem;
+        }
+
+        /* [8] TESTIMONIALS */
+        .testimonials {
+            padding: 10rem 0;
+        }
+
+        .quote-marquee {
+            display: flex;
+            gap: 4rem;
+            animation: scroll-quotes 60s linear infinite;
+            margin-bottom: 6rem;
+        }
+
+        @keyframes scroll-quotes {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .quote-card {
+            min-width: 600px;
+            font-style: italic;
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #ccc;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-val {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        /* [9] FAQ ACCORDION */
+        .faq {
+            padding: 8rem 0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+
+        .faq-query {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .faq-query i {
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            color: var(--text-muted);
+            margin-top: 0;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 200px;
+            margin-top: 1rem;
+        }
+
+        .faq-item.active i {
+            transform: rotate(45deg);
+            color: var(--accent);
+        }
+
+        /* [10] FOOTER */
+        .footer-cta {
+            padding: 10rem 0;
+            text-align: center;
+            background: linear-gradient(to top, rgba(244, 63, 94, 0.05), transparent);
+        }
+
+        footer {
+            padding: 6rem 0 3rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .footer-col h4 {
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+
+        .footer-col a {
+            display: block;
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-bottom: 0.75rem;
+            transition: var(--transition);
+        }
+
+        .footer-col a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            margin-top: 6rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badges {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .badge {
+            background: #111;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: #666;
+            font-weight: 700;
+            border: 1px solid #222;
+        }
+
+        .socials {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .socials a {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .socials a:hover {
+            color: var(--accent);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 3.5rem;
+            }
+
+            .nav-links,
+            .nav-actions {
+                display: none;
+            }
+
+            .section-grid,
+            .workflow-card,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .demo-grid,
+            .features-grid,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-card {
+                padding: 2rem;
+            }
+
+            .input-bar {
+                width: 100%;
+            }
+        }
+
+        /* SHAKE ANIMATION */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- [1] NAVBAR -->
+    <nav id="navbar">
+        <div class="container nav-content">
+            <a href="#" class="logo">
+                <i class="fas fa-scissors"></i> ViralClippy
+            </a>
+
+            <ul class="nav-links">
+                <li>
+                    <a href="#features">Features <i class="fas fa-chevron-down" style="font-size: 0.7rem"></i></a>
+                    <div class="dropdown">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-bolt"></i>
+                            <div>
+                                <span>AI Clipping</span>
+                                <p>Estrai momenti virali in secondi.</p>
+                            </div>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-closed-captioning"></i>
+                            <div>
+                                <span>AI Captions</span>
+                                <p>Sottotitoli dinamici automatici.</p>
+                            </div>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-expand"></i>
+                            <div>
+                                <span>Smart Reframe</span>
+                                <p>Adatta video al formato 9:16.</p>
+                            </div>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-magic"></i>
+                            <div>
+                                <span>AI B-Roll</span>
+                                <p>Aggiungi clip contestuali.</p>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+                <li><a href="#solutions">Solutions</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#blog">Blog</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <a href="#" class="signin-link">Sign in</a>
+                <a href="#" class="btn-gradient">Start for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- [2] HERO SECTION -->
+    <section class="hero">
+        <div class="container">
+            <div class="reveal">
+                <div class="pill-badge">✦ #1 AI Video Intelligence</div>
+                <h1><span class="gradient-text">Domina i Social.</span><br>10x clip più veloce.</h1>
+                <p class="hero-subtitle">
+                    Trasforma i tuoi video lunghi in contenuti virali per TikTok, Reels e Shorts. ViralClippy identifica
+                    i momenti migliori e li edita per te in un click.
+                </p>
+            </div>
+
+            <div class="reveal" style="transition-delay: 0.2s">
+                <form class="input-bar" id="hero-form">
+                    <input type="text" id="hero-input" placeholder="Incolla il link del tuo video YouTube...">
+                    <button type="submit" class="btn-gradient">→ Inizia gratis</button>
+                </form>
+                <p class="support-text">Supporta: YouTube, Drive, Vimeo, Zoom, Loom e altri</p>
+            </div>
+
+            <div class="demo-grid reveal" style="transition-delay: 0.4s">
+                <div class="demo-card">
+                    <div class="demo-img"><i class="fas fa-microphone fa-2x" style="opacity: 0.3"></i></div>
+                    <div class="demo-label">Podcast</div>
+                    <div class="demo-info">Joe Rogan Interview Clip</div>
+                </div>
+                <div class="demo-card">
+                    <div class="demo-img" style="background: linear-gradient(45deg, #1a1a1a, #333)"><i
+                            class="fas fa-gamepad fa-2x" style="opacity: 0.3"></i></div>
+                    <div class="demo-label">Gaming</div>
+                    <div class="demo-info">Elden Ring Epic Moment</div>
+                </div>
+                <div class="demo-card">
+                    <div class="demo-img"><i class="fas fa-chalkboard-teacher fa-2x" style="opacity: 0.3"></i></div>
+                    <div class="demo-label">Vlog</div>
+                    <div class="demo-info">Casey Neistat Travel Vlog</div>
+                </div>
+            </div>
+
+            <div id="feature-pills" class="reveal"
+                style="font-weight: 700; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; transition-delay: 0.6s">
+                AI Clipping
+            </div>
+        </div>
+    </section>
+
+    <!-- [3] SOCIAL PROOF -->
+    <section class="social-proof">
+        <div class="container reveal" style="text-align: center">
+            <h2 style="font-size: 1.2rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px">
+                Usato da 12M+ creator e aziende</h2>
+        </div>
+
+        <div class="marquee-wrapper">
+            <div class="marquee" id="creators-1">
+                <!-- JS will populate -->
+            </div>
+            <div class="marquee reverse" id="creators-2">
+                <!-- JS will populate -->
+            </div>
+        </div>
+
+        <div class="container logo-marquee reveal">
+            <span>NVIDIA</span>
+            <span>GITHUB</span>
+            <span>VISA</span>
+            <span>SPOTIFY</span>
+            <span>AIRBNB</span>
+        </div>
+    </section>
+
+    <!-- [4] AI MODELS -->
+    <section class="ai-models" id="features">
+        <div class="container">
+            <div class="section-grid">
+                <div class="reveal">
+                    <div class="pill-badge" style="border: none; background: transparent; padding: 0">L'AI che capisce
+                        ogni pixel</div>
+                    <h2
+                        style="font-family: 'Syne', sans-serif; font-size: 3.5rem; line-height: 1.1; margin-bottom: 2rem">
+                        Motori addestrati per la viralità.</h2>
+
+                    <div class="feature-tabs">
+                        <button class="tab active" data-content="clip">ClipAnything</button>
+                        <button class="tab" data-content="reframe">ReframeAnything</button>
+                        <button class="tab" data-content="caption">CaptionAnything</button>
+                    </div>
+
+                    <div id="tab-content">
+                        <h3 style="font-size: 1.5rem; margin-bottom: 1rem">Intelligenza Semantica</h3>
+                        <p style="color: var(--text-muted)">I nostri algoritmi analizzano il tono, le pause e le
+                            reazioni per trovare esattamente dove accade la magia.</p>
+                        <ul class="check-list">
+                            <li><i class="fas fa-check"></i> Rilevamento automatico ganci</li>
+                            <li><i class="fas fa-check"></i> Analisi sentiment avanzata</li>
+                            <li><i class="fas fa-check"></i> Taglio preciso al millisecondo</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mockup reveal" style="transition-delay: 0.2s">
+                    <div style="padding: 2rem; color: var(--accent); font-weight: 900; font-size: 1.5rem">AI INTERFACE
+                        PREVIEW</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- [5] WORKFLOW AUTOMATION -->
+    <section class="workflow">
+        <div class="container">
+            <div class="workflow-card reveal">
+                <span class="live-badge">AUTO-PILOT</span>
+                <div>
+                    <h2 style="font-family: 'Syne', sans-serif; font-size: 3rem; line-height: 1.1; margin-bottom: 2rem">
+                        Il tuo processo su autopilota.</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 2.5rem">Basta incollare un link. ViralClippy si
+                        occupa di scaricare, tagliare, sottotitolare e pubblicare. Tu devi solo scegliere le migliori.
+                    </p>
+                    <ul class="check-list">
+                        <li><i class="fas fa-sync"></i> Sincronizzazione multi-canale</li>
+                        <li><i class="fas fa-shield-alt"></i> Brand safety automatica</li>
+                        <li><i class="fas fa-chart-line"></i> Predictor di Engagement</li>
+                    </ul>
+                    <a href="#" class="btn-gradient"
+                        style="margin-top: 2rem; background: transparent; border: 1px solid var(--border)">Esplora il
+                        Workflow</a>
+                </div>
+                <div class="mockup" style="height: 350px">
+                    <div
+                        style="position: absolute; bottom: 2rem; left: 2rem; right: 2rem; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden">
+                        <div style="width: 70%; height: 100%; background: var(--accent)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- [6] AI EDITOR -->
+    <section class="editor-section">
+        <div class="container">
+            <div class="reveal">
+                <h2 style="font-size: 3rem; font-family: 'Syne', sans-serif; margin-bottom: 4rem">AI che edita con te.
+                </h2>
+                <div class="editor-tabs">
+                    <span class="e-tab active" data-editor="cut">Taglia</span>
+                    <span class="e-tab" data-editor="capt">Captions</span>
+                    <span class="e-tab" data-editor="ref">Reframe</span>
+                    <span class="e-tab" data-editor="brol">B-Roll</span>
+                    <span class="e-tab" data-editor="pub">Pubblica</span>
+                </div>
+                <div class="mockup reveal" style="max-width: 1000px; margin: 0 auto; height: 450px">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- [7] TEAM BUSINESS -->
+    <section class="container features-grid">
+        <div class="f-card reveal">
+            <div class="f-icon"><i class="fas fa-users"></i></div>
+            <h3>Collaborazione Team</h3>
+            <p style="color: var(--text-muted); margin-top: 1rem">Gestisci più account social e collabora con il tuo
+                team creativo in tempo reale.</p>
+        </div>
+        <div class="f-card reveal" style="transition-delay: 0.1s">
+            <div class="f-icon"><i class="fas fa-palette"></i></div>
+            <h3>Brand Templates</h3>
+            <p style="color: var(--text-muted); margin-top: 1rem">Salva i tuoi font, colori e stili di sottotitoli per
+                una coerenza visiva totale.</p>
+        </div>
+        <div class="f-card reveal" style="transition-delay: 0.2s">
+            <div class="f-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h3>Bulk Processing</h3>
+            <p style="color: var(--text-muted); margin-top: 1rem">Carica ore di video e ottieni centinaia di clip pronte
+                in pochi minuti.</p>
+        </div>
+    </section>
+
+    <!-- [8] TESTIMONIALS -->
+    <section class="testimonials">
+        <div class="quote-marquee" id="quotes">
+            <!-- JS populated -->
+        </div>
+        <div class="container">
+            <div class="stats-grid reveal">
+                <div class="stat-card">
+                    <div>
+                        <div class="creator-name">MrBeast Fanbase</div>
+                        <div class="creator-stats">@viral_stats</div>
+                    </div>
+                    <div class="stat-val">+266% Views</div>
+                </div>
+                <div class="stat-card">
+                    <div>
+                        <div class="creator-name">Tech Insider</div>
+                        <div class="creator-stats">@techreview</div>
+                    </div>
+                    <div class="stat-val">2x Watch Time</div>
+                </div>
+                <div class="stat-card">
+                    <div>
+                        <div class="creator-name">Giacomo — Creator</div>
+                        <div class="creator-stats">@giac_ov</div>
+                    </div>
+                    <div class="stat-val">10h Risparmiate</div>
+                </div>
+                <div class="stat-card">
+                    <div>
+                        <div class="creator-name">Social Agency X</div>
+                        <div class="creator-stats">B2B client</div>
+                    </div>
+                    <div class="stat-val">+4.5M Followers</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- [9] FAQ -->
+    <section class="container faq reveal">
+        <h2 style="text-align: center; font-family: 'Syne', sans-serif; font-size: 2.5rem; margin-bottom: 4rem">Domande
+            frequenti</h2>
+        <div class="faq-item active">
+            <div class="faq-query">Cos'è ViralClippy?<i class="fas fa-plus"></i></div>
+            <div class="faq-answer">ViralClippy è una piattaforma AI che trasforma automaticamente i tuoi video lunghi
+                in brevi clip virali ottimizzate per TikTok, Instagram Reels e YouTube Shorts.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-query">Supporta l'italiano?<i class="fas fa-plus"></i></div>
+            <div class="faq-answer">Assolutamente sì. La nostra AI parla e capisce oltre 50 lingue, incluso l'italiano,
+                con precisione chirurgica per i sottotitoli.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-query">Quanto tempo risparmio?<i class="fas fa-plus"></i></div>
+            <div class="faq-answer">I nostri utenti segnalano una riduzione del 90% nel tempo di editing. Quello che
+                prima richiedeva ore, ora richiede pochi minuti.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-query">Quali piattaforme sono supportate?<i class="fas fa-plus"></i></div>
+            <div class="faq-answer">Puoi incollare link da YouTube, Drive, Vimeo, Zoom, Loom, Twitch e molti altri.
+            </div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-query">È gratis?<i class="fas fa-plus"></i></div>
+            <div class="faq-answer">Puoi iniziare gratuitamente con un numero limitato di crediti ogni mese. Per volumi
+                più alti abbiamo piani Pro e Business.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-query">L'AI sceglie i momenti da sola? <i class="fas fa-plus"></i></div>
+            <div class="faq-answer">Sì, il nostro motore AI analizza la trascrizione e l'audio per identificare ganci,
+                pezzi divertenti o informativi ad alto potenziale virale.</div>
+        </div>
+    </section>
+
+    <!-- [10] FOOTER CTA -->
+    <section class="footer-cta reveal">
+        <div class="container" style="max-width: 800px">
+            <h2 style="font-size: 3.5rem; font-family: 'Syne', sans-serif; margin-bottom: 1.5rem">Inizia gratis oggi
+            </h2>
+            <p style="color: var(--text-muted); margin-bottom: 3rem">Nessuna carta di credito richiesta. 10 clip
+                gratuite incluse.</p>
+            <form class="input-bar" id="footer-form">
+                <input type="text" placeholder="Incolla il link del tuo video YouTube...">
+                <button type="submit" class="btn-gradient">→ Inizia gratis</button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col" style="grid-column: span 2">
+                    <a href="#" class="logo" style="margin-bottom: 2rem">
+                        <i class="fas fa-scissors"></i> ViralClippy
+                    </a>
+                    <p style="color: var(--text-muted); max-width: 300px">Trasforma il tuo archivio video in una
+                        macchina di crescita virale con l'intelligenza artificiale più avanzata del mercato.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Prodotto</h4>
+                    <a href="#">AI Clipping</a>
+                    <a href="#">AI Captions</a>
+                    <a href="#">Reframe</a>
+                    <a href="#">Pricing</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Risorse</h4>
+                    <a href="#">Blog</a>
+                    <a href="#">AI Agency</a>
+                    <a href="#">Tutorial</a>
+                    <a href="#">API Docs</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                    <a href="#">Cookies</a>
+                    <a href="#">Affiliate</a>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div style="display: flex; align-items: center; gap: 2rem">
+                    <p style="font-size: 0.85rem; color: var(--text-muted)">&copy; 2025 ViralClippy AI. All rights
+                        reserved.</p>
+                    <div class="badges">
+                        <div class="badge">SOC2 TYPE 2</div>
+                        <div class="badge">Top 50 AI Products 2025</div>
+                    </div>
+                </div>
+                <div class="socials">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                    <a href="#"><i class="fab fa-discord"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // [1] NAVBAR SCROLL
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // [2] FEATURE PILLS ROTATE
+        const pills = [
+            "AI Clipping", "AI Captions", "AI Reframe", "AI B-Roll", "Auto Publish", "Brand Templates"
+        ];
+        let pillIndex = 0;
+        const pillEl = document.getElementById('feature-pills');
+
+        setInterval(() => {
+            pillEl.style.opacity = '0';
+            setTimeout(() => {
+                pillIndex = (pillIndex + 1) % pills.length;
+                pillEl.textContent = pills[pillIndex];
+                pillEl.style.opacity = '1';
+            }, 300);
+        }, 3000);
+
+        // [3] CREATOR MARQUEE GENERATOR
+        const creators = [
+            { n: "Marco Rossi", s: "4.7M" }, { n: "TechPodcast", s: "892K" }, { n: "Elena_Vlogs", s: "1.2M" },
+            { n: "CookingHero", s: "2.5M" }, { n: "StartupDaily", s: "450K" }, { n: "FinanceGuy", s: "1.8M" },
+            { n: "Luca_Dev", s: "120K" }, { n: "LifeCoach24", s: "5.6M" }, { n: "TravelSeeker", s: "930K" },
+            { n: "GamingBeast", s: "10M" }, { n: "NewsUpdate", s: "15M" }, { n: "HealthyLife", s: "3.1M" }
+        ];
+
+        function populateMarquee(id) {
+            const container = document.getElementById(id);
+            const content = [...creators, ...creators].map(c => `
+                <div class="creator-card">
+                    <div class="avatar" style="background: hsl(${Math.random() * 360}, 70%, 60%)"></div>
+                    <div>
+                        <div class="creator-name">${c.n}</div>
+                        <div class="creator-stats">${c.s} followers</div>
+                    </div>
+                </div>
+            `).join('');
+            container.innerHTML = content;
+        }
+        populateMarquee('creators-1');
+        populateMarquee('creators-2');
+
+        // [4] AI MODEL TABS
+        const modelTabs = document.querySelectorAll('.tab');
+        const contentData = {
+            clip: {
+                h: "Intelligenza Semantica",
+                p: "I nostri algoritmi analizzano il tono, le pause e le reazioni per trovare esattamente dove accade la magia.",
+                l: ["Rilevamento automatico ganci", "Analisi sentiment avanzata", "Taglio preciso al millisecondo"]
+            },
+            reframe: {
+                h: "Tracking del Movimento",
+                p: "L'AI segue il volto di chi parla o l'azione principale, mantenendo il fulcro sempre al centro del formato verticale.",
+                l: ["Face focus automatico", "Crop intelligente 9:16", "Nessun ritaglio manuale"]
+            },
+            caption: {
+                h: "Sottotitoli Virali",
+                p: "Genera sottotitoli stile Alex Hormozi o MrBeast. L'AI mette in risalto le parole chiave con colori e emoji automatici.",
+                l: ["Emoji istantanee", "Highlight parole chiave", "Sincronizzazione audio 100%"]
+            }
+        };
+
+        modelTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                modelTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const type = tab.dataset.content;
+                const data = contentData[type];
+                const contentEl = document.getElementById('tab-content');
+
+                contentEl.style.opacity = '0';
+                setTimeout(() => {
+                    contentEl.innerHTML = `
+                        <h3 style="font-size: 1.5rem; margin-bottom: 1rem">${data.h}</h3>
+                        <p style="color: var(--text-muted)">${data.p}</p>
+                        <ul class="check-list">
+                            ${data.l.map(item => `<li><i class="fas fa-check"></i> ${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    contentEl.style.opacity = '1';
+                }, 300);
+            });
+        });
+
+        // [5] EDITOR TABS
+        const editorTabs = document.querySelectorAll('.e-tab');
+        editorTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                editorTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // [6] SCROLL REVEAL
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // [7] FAQ ACCORDION
+        document.querySelectorAll('.faq-query').forEach(query => {
+            query.addEventListener('click', () => {
+                const item = query.parentElement;
+                const isActive = item.classList.contains('active');
+
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+                if (!isActive) item.classList.add('active');
+            });
+        });
+
+        // [8] TESTIMONIAL QUOTES
+        const quotes = [
+            "\"ViralClippy ha cambiato totalmente il modo in cui gestiamo il canale.\"",
+            "\"Risparmiare 10 ore a settimana di editing è stato un game changer.\"",
+            "\"Le visualizzazioni dei Reels sono raddoppiate in meno di un mese.\"",
+            "\"L'AI capisce il contesto meglio di molti editor junior.\""
+        ];
+        const quotesContainer = document.getElementById('quotes');
+        quotesContainer.innerHTML = [...quotes, ...quotes].map(q => `
+            <div class="quote-card">${q}</div>
+        `).join('');
+
+        // [9] INPUT VALIDATION SHAKE
+        const validateInput = (e, inputId) => {
+            e.preventDefault();
+            const input = document.getElementById(inputId);
+            if (!input.value.trim()) {
+                input.parentElement.classList.add('shake');
+                setTimeout(() => input.parentElement.classList.remove('shake'), 400);
+            } else {
+                alert("Redirecting to app dashboard...");
+            }
+        };
+
+        document.getElementById('hero-form').addEventListener('submit', (e) => validateInput(e, 'hero-input'));
+        document.getElementById('footer-form').addEventListener('submit', (e) => validateInput(e, 'footer-form-input'));
+
+    </script>
+</body>
+
+</html>

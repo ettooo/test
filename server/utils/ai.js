@@ -30,28 +30,30 @@ async function findKeyMoments(transcript) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `
-        CRITICAL MISSION: You are a Viral Content Strategist for a top-tier media agency. 
-        Your task is to extract EVERY SINGLE potentially viral moment from this transcript. 
-        I need at least 15-20 distinct clips. Do not be conservative. If it's interesting, clip it.
-
-        TRANSCRIPT ANALYSIS RULES:
-        - Identify hooks, emotional peaks, technical insights, jokes, or controversial statements.
-        - CLIP LENGTH: Vary between 15s and 60s based on natural scene endings.
-        - TITLES: Must be magnetic, use "Social Media Power Words" (e.g., SECRET, SHOCKING, REVEALED, ⚡, 🔥).
-        - VIRAL SCORE: Be realistic but prioritize high-potential moments (80-100).
-
+        CRITICAL MISSION: You are a Viral Content Strategist. 
+        Analyze the provided transcript and extract EVERY viral-potential moment.
+        
+        LANGUAGE RULE: You MUST write the "title" and "reason" in the SAME LANGUAGE as the transcript provided.
+        If the transcript is in Italian, write in Italian. If in English, write in English.
+        
+        TRANSCRIPT ANALYSIS:
+        - Identify hooks, technical insights, or emotional peaks.
+        - CLIP LENGTH: 15s to 60s.
+        - TITLES: Magnetic, high energy, same language as content.
+        - VIRAL SCORE: 1-100 based on retention potential.
+        
         TRANSCRIPT:
         ${transcript}
-
+        
         OUTPUT: Return ONLY a valid JSON array.
         STRUCTURE:
         [
           {
-            "start": number (seconds),
-            "end": number (seconds),
-            "title": "ULTRA-CATCHY TITLE",
-            "reason": "Why will this go viral?",
-            "viralScore": number (1-100)
+            "start": number,
+            "end": number,
+            "title": "CATCHY TITLE IN ORIGINAL LANGUAGE",
+            "reason": "Why in original language",
+            "viralScore": number
           }
         ]
         `;

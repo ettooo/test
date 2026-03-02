@@ -12,7 +12,8 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 function generateSrt(transcriptItems, start, end, outputPath) {
     const filtered = transcriptItems.filter(item => {
         const itemStart = item.offset / 1000;
-        return itemStart >= start && itemStart <= end;
+        const itemEnd = (item.offset + (item.duration || 2000)) / 1000; // Default 2s if duration missing
+        return itemEnd > start && itemStart < end;
     });
 
     let srtContent = '';
@@ -28,7 +29,7 @@ function generateSrt(transcriptItems, start, end, outputPath) {
             return `${h}:${m}:${s},${ms}`;
         };
 
-        srtContent += `${index + 1}\n${formatTime(sStart)} --> ${formatTime(sEnd)}\n${item.text}\n\n`;
+        srtContent += `${index + 1}\n${formatTime(sStart)} --> ${formatTime(sEnd)}\n${item.text.toUpperCase()}\n\n`;
     });
 
     fs.writeFileSync(outputPath, srtContent);
@@ -84,8 +85,16 @@ async function createClip(videoUrl, outputPath, start, end, withSubtitles, trans
 
             if (withSubtitles && transcriptItems.length > 0) {
                 generateSrt(transcriptItems, start, end, tempSrt);
+                console.log(`SRT Generated: ${tempSrt}`);
+
+                // Super-safe Windows escaping for FFmpeg filtergraph
                 const escapedSrtPath = tempSrt.replace(/\\/g, '/').replace(/:/g, '\\:');
-                filters.push(`subtitles='${escapedSrtPath}':force_style='Alignment=2,FontSize=24'`);
+
+                // Viral Look: Yellow text, Thick Black Outline, Center Alignment.
+                // FontSize=80 is ideal for 1920p height. MarginV=400 puts it in the safe zone.
+                const subtitleFilter = `subtitles=filename='${escapedSrtPath}':force_style='FontName=Arial,Bold=1,FontSize=80,PrimaryColour=&H0000FFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=4,Shadow=1,Alignment=2,MarginV=420'`;
+                filters.push(subtitleFilter);
+                console.log('Applied subtitle filter:', subtitleFilter);
             }
 
             ffmpeg(tempInput)
